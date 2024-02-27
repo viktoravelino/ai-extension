@@ -12,31 +12,43 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "../ui/button";
 import { useEffect } from "react";
+import { useConfigContext } from "@/contexts/config-context";
+import { routes } from "@/routes";
+import { useNavigate } from "react-router-dom";
 
 const formSchema = z.object({
   url: z.string().url(),
-  target: z.string(),
+  target: z.string().min(1),
 });
 
 type AutoSearchFormValues = z.infer<typeof formSchema>;
 
 export function AutoSearchForm() {
+  const { isExtension } = useConfigContext();
+  const navigate = useNavigate();
+
   const form = useForm<AutoSearchFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      url: "",
-      target: "",
+      url: "https://mui.com/joy-ui/react-button",
+      target: "button",
     },
   });
 
   function onSubmit(data: AutoSearchFormValues) {
     const params = new URLSearchParams({ url: data.url, target: data.target });
-    const url = `http://localhost:5173/auto-search?${params.toString()}`;
+    const url = `http://localhost:5173/${
+      routes.searchElements
+    }?${params.toString()}`;
 
-    window.open(url, "_blank")?.focus();
+    isExtension
+      ? window.open(url, "_blank")?.focus()
+      : navigate(`/${routes.searchElements}?${params.toString()}`);
   }
 
   useEffect(() => {
+    if (!isExtension) return;
+
     async function getUrl() {
       const tabs = await chrome?.tabs?.query({ active: true });
       const url = tabs ? tabs[0]?.url : "";
@@ -44,7 +56,7 @@ export function AutoSearchForm() {
     }
 
     getUrl();
-  }, [form]);
+  }, [form, isExtension]);
 
   return (
     <Form {...form}>

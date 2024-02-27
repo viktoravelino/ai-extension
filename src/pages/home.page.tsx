@@ -16,7 +16,7 @@ export function HomePage() {
         <AutoSearchForm />
       </TabsContent>
 
-      <TabsContent value="manual-search">Manual Search</TabsContent>
+      <TabsContent value="manual-search">Manual Search 2</TabsContent>
     </Tabs>
   );
 }

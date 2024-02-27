@@ -1,41 +1,36 @@
 import "./App.css";
-import { useState } from "react";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { HomePage } from "./pages/home.page";
+import { ConfigContextProvider } from "./contexts/config-context";
+import { SearchElementsPage } from "./pages/search-elements";
+import { routes } from "./routes";
+import { ListElements } from "./pages/list-elements";
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: routes.root,
     element: <HomePage />,
   },
   {
-    path: "/auto-search",
-    element: <h1>Auto Search</h1>,
+    path: routes.searchElements,
+    element: <SearchElementsPage />,
   },
   {
-    path: "/*",
+    path: routes.listElements,
+    element: <ListElements />,
+  },
+  {
+    path: routes.notFound,
     element: <h1>Not Found</h1>,
   },
 ]);
 
 function App() {
-  const [isExtension] = useState(() => {
-    const path = window.location.href;
-    if (
-      path.startsWith("chrome-extension://") ||
-      path.startsWith("moz-extension://")
-    ) {
-      return true;
-    }
-
-    return false;
-  });
-
-  if (isExtension) {
-    return <HomePage />;
-  }
-
-  return <RouterProvider router={router} />;
+  return (
+    <ConfigContextProvider>
+      <RouterProvider router={router} />
+    </ConfigContextProvider>
+  );
 }
 
 export default App;
