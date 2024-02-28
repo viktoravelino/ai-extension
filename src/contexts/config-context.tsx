@@ -1,5 +1,5 @@
-import { HomePage } from "@/pages/home.page";
-import { createContext, useContext, useMemo, useState } from "react";
+// import { HomePage } from "@/pages/home.page";
+import { createContext, useContext } from "react";
 
 interface ConfigContextProps {
   isExtension: boolean;
@@ -11,32 +11,19 @@ const ConfigContext = createContext<ConfigContextProps>({
 
 export function ConfigContextProvider({
   children,
+  isExtension,
 }: {
   children: React.ReactNode;
+  isExtension: boolean;
 }) {
-  const [isExtension] = useState(() => {
-    const path = window.location.href;
-    if (
-      path.startsWith("chrome-extension://") ||
-      path.startsWith("moz-extension://")
-    ) {
-      return true;
-    }
-
-    return false;
-  });
-
-  const value = useMemo(() => ({ isExtension }), [isExtension]);
-
-  if (isExtension) {
-    return <HomePage />;
-  }
-
   return (
-    <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>
+    <ConfigContext.Provider value={{ isExtension }}>
+      {children}
+    </ConfigContext.Provider>
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useConfigContext() {
   return useContext(ConfigContext);
 }

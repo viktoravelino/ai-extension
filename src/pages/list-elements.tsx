@@ -1,64 +1,55 @@
-import { Button } from "@/components/ui/button";
+import { ElementList } from "@/components/element-list";
+import { Error } from "@/components/error";
+import { env } from "@/env";
+import { useFetch } from "@/hooks/use-fetch";
 import { streamToData, Element } from "@/lib/stream-to-data";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-// import { mockScreenshotElement } from "./mock";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export function ListElements() {
   const navigate = useNavigate();
-  const [elements, setElements] = useState<Element[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchParams] = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
+  const { fetchStream, isLoading, error } = useFetch(env.API_URL, true);
 
-  const call = useCallback(async () => {
+  const [elements, setElements] = useState<Element[]>([]);
+
+  const fetchAPI = useCallback(async () => {
+    setElements([]);
+
     const url = searchParams.get("url");
-    const elementTarget = searchParams.get("target");
+    const selectors = searchParams.get("selectors");
 
-    if (!url || !elementTarget) return;
+    if (!url || !selectors) return navigate("/");
 
-    try {
-      setElements([]);
-      setLoading(true);
-      const response = await fetch(
-        `http://localhost:3000/screenshot?${searchParams.toString()}`
-      );
-      await streamToData(response.body!, (element) => {
-        setElements((state) => {
-          return [...state, element];
+    await fetchStream(`screenshot?${searchParams.toString()}`, {
+      onStreamData: async (stream) => {
+        await streamToData(stream, (element) => {
+          setElements((state) => {
+            return [...state, element];
+          });
         });
-      });
-    } catch (error) {
-      console.log(error);
-      setError("Error fetching elements. Please go back and try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [searchParams]);
+      },
+    });
+  }, [searchParams, fetchStream, navigate]);
 
   useEffect(() => {
-    call();
-    // setElements(mockScreenshotElement as Element[]);
-  }, [call]);
+    fetchAPI();
+  }, [fetchAPI]);
 
   if (error) {
     return (
-      <>
-        <p>{error}</p>
-        <Button
-          onClick={() => {
-            navigate("/");
-          }}
-        >
-          Go back
-        </Button>
-      </>
+      <Error
+        error={error}
+        onAction={() => {
+          navigate("/");
+        }}
+      />
     );
   }
 
   return (
     <>
-      {loading && <p>Loading...</p>}
+      {isLoading && <p>Loading...</p>}
 
       <div
         style={{
@@ -72,39 +63,4 @@ export function ListElements() {
       </div>
     </>
   );
-}
-
-interface ElementListProps {
-  elements: Element[];
-}
-
-function ElementList(props: ElementListProps) {
-  const { elements } = props;
-
-  return elements.map((element, i) => {
-    const imageBase64 = window.btoa(String.fromCharCode(...element.file.data));
-
-    if (elements.length <= 0) {
-      return null;
-    }
-
-    return (
-      <Link
-        to={`/element-details?selector=${JSON.stringify(
-          element.elementSelector
-        )}`}
-        style={{
-          border: "1px solid black",
-          borderRadius: "5px",
-          width: "200px",
-          height: "200px",
-          placeItems: "center",
-          display: "grid",
-        }}
-        key={i}
-      >
-        <img src={`data:image/png;base64,${imageBase64}`} alt="image" />
-      </Link>
-    );
-  });
 }

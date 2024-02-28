@@ -1,25 +1,44 @@
+import { Error } from "@/components/error";
 import { Button } from "@/components/ui/button";
+import { env } from "@/env";
+import { useFetch } from "@/hooks/use-fetch";
 import { routes } from "@/routes";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export function SearchElementsPage() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
   const [searchParams] = useSearchParams();
   const [selectors, setSelectors] = useState<string[]>([]);
 
+  const { fetchJSON, isLoading, error } = useFetch(env.API_URL, true);
+
   const fetchAPI = useCallback(async () => {
-    const url = `http://localhost:3000/ai-selectors?${searchParams.toString()}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    setSelectors(Array.from(new Set<string>(data)));
-  }, [searchParams]);
+    const url = searchParams.get("url");
+    const target = searchParams.get("target");
+
+    if (!url || !target) return navigate("/");
+
+    const data = await fetchJSON<string[]>(
+      `ai-selectors?${searchParams.toString()}`
+    );
+    setSelectors(data ?? []);
+  }, [searchParams, fetchJSON, navigate]);
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchAPI().finally(() => setIsLoading(false));
+    fetchAPI();
   }, [fetchAPI]);
+
+  if (error) {
+    return (
+      <Error
+        error={error}
+        onAction={() => {
+          navigate("/");
+        }}
+      />
+    );
+  }
 
   if (isLoading) {
     return <h1>Loading...</h1>;
@@ -28,7 +47,7 @@ export function SearchElementsPage() {
   return (
     <>
       <h1>Selectors Found:</h1>
-      <ul>
+      <ul className="mt-4">
         {selectors.map((selector) => (
           <li key={selector}>
             <pre>{selector}</pre>

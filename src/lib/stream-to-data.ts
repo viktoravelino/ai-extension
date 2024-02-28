@@ -10,19 +10,33 @@ export async function streamToData(
   body: ReadableStream<Uint8Array>,
   cb: (element: Element) => void
 ) {
-  const text = [];
+  const data = [];
 
   const reader = body.pipeThrough(new TextDecoderStream()).getReader();
 
+  let support = "";
   while (reader) {
     const stream = await reader.read();
     if (stream.done) break;
 
-    const chunks = stream.value.replace(/\n/g, "");
+    const { value } = stream;
+
+    const completePatternMatch = /\n/g;
+
+    if (!completePatternMatch.test(value)) {
+      support += value;
+      continue;
+    }
+
+    const chunks = (support + value).replace("\n", "");
     if (!chunks) continue;
-    cb(JSON.parse(chunks));
-    text.push(JSON.parse(chunks));
+
+    const json = JSON.parse(chunks);
+    cb(json);
+    data.push(json);
+
+    support = "";
   }
 
-  return text;
+  return data;
 }

@@ -1,6 +1,6 @@
 export const routes = {
   root: "/",
-  searchElements: "search-elements",
+  searchSelectors: "search-selectors",
   notFound: "*",
   listElements: "list-elements",
 };

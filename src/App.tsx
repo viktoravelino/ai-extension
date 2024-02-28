@@ -1,18 +1,28 @@
 import "./App.css";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import {
+  RouterProvider,
+  createBrowserRouter,
+  createMemoryRouter,
+} from "react-router-dom";
 import { HomePage } from "./pages/home.page";
 import { ConfigContextProvider } from "./contexts/config-context";
-import { SearchElementsPage } from "./pages/search-elements";
+import { SearchElementsPage } from "./pages/search-selectors";
 import { routes } from "./routes";
 import { ListElements } from "./pages/list-elements";
 
-const router = createBrowserRouter([
+const path = window.location.href;
+const isExtension =
+  path.startsWith("chrome-extension://") || path.startsWith("moz-extension://");
+
+const createRouter = isExtension ? createMemoryRouter : createBrowserRouter;
+
+const router = createRouter([
   {
     path: routes.root,
     element: <HomePage />,
   },
   {
-    path: routes.searchElements,
+    path: routes.searchSelectors,
     element: <SearchElementsPage />,
   },
   {
@@ -27,7 +37,7 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <ConfigContextProvider>
+    <ConfigContextProvider isExtension={isExtension}>
       <RouterProvider router={router} />
     </ConfigContextProvider>
   );
