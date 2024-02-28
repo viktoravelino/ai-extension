@@ -9,6 +9,7 @@ import { ConfigContextProvider } from "./contexts/config-context";
 import { SearchElementsPage } from "./pages/search-selectors";
 import { routes } from "./routes";
 import { ListElements } from "./pages/list-elements";
+import { ElementDetails } from "./pages/element-details";
 
 const path = window.location.href;
 const isExtension =
@@ -28,6 +29,10 @@ const router = createRouter([
   {
     path: routes.listElements,
     element: <ListElements />,
+  },
+  {
+    path: routes.elementDetails,
+    element: <ElementDetails />,
   },
   {
     path: routes.notFound,

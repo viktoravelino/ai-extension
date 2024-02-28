@@ -3,4 +3,5 @@ export const routes = {
   searchSelectors: "search-selectors",
   notFound: "*",
   listElements: "list-elements",
+  elementDetails: "element-details",
 };

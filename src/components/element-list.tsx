@@ -1,5 +1,5 @@
 import { Element } from "@/lib/stream-to-data";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 interface ElementListProps {
   elements: Element[];
@@ -7,6 +7,14 @@ interface ElementListProps {
 
 export function ElementList(props: ElementListProps) {
   const { elements } = props;
+  const [searchParams] = useSearchParams();
+
+  function createSearchParams(element: Element) {
+    const url = searchParams.get("url")!;
+    const selector = element.elementSelector;
+    const newSearchParams = new URLSearchParams({ url, selector });
+    return newSearchParams;
+  }
 
   if (elements.length <= 0) {
     return null;
@@ -17,9 +25,7 @@ export function ElementList(props: ElementListProps) {
 
     return (
       <Link
-        to={`/element-details?selector=${JSON.stringify(
-          element.elementSelector
-        )}`}
+        to={`/element-details?${createSearchParams(element)}`}
         style={{
           border: "1px solid black",
           borderRadius: "5px",
