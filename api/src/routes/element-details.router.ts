@@ -67,7 +67,7 @@ async function fetchCss(html: string, selector: string) {
   const stringifiedRules = stringifyRules([
     {
       type: "rule",
-      selectors: [classes[0]], // maybe change to be the target name
+      selectors: [`.${classes[0]}`], // maybe change to be the target name
       declarations: declarationsArray,
     },
   ]);

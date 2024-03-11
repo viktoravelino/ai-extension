@@ -10,7 +10,6 @@ const router = Router();
 
 router.get("/", async (req, res) => {
   if (USE_MOCK) {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
     return res.json(MOCK_SELECTORS_FROM_AI);
   }
 
