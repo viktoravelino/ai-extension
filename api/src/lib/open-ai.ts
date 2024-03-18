@@ -11,7 +11,7 @@ export class OurAI {
         topP: 1,
         frequencyPenalty: 0,
         presencePenalty: 0,
-        maxTokens: 1000,
+        maxTokens: 4096,
         modelKwargs: {
           response_format: { type: "json_object" },
         },

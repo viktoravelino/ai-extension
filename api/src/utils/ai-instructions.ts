@@ -6,7 +6,10 @@ const angularComponentHtml = "```html\n<p>component-name works!</p>\n```";
 const angularComponent =
   "```ts\nimport {{ Component }} from '@angular/core';\n\n@Component({{\n    selector: 'app-component-name',\n    templateUrl: './component-name.component.html',\n    styleUrls: ['./component-name.component.scss']\n}})\nexport class ComponentNameComponent {{\n    constructor() {{}}\n}}\n```";
 
-export const instructions = `You are a code generation robot. You will be tasked with creating components of a requested type in a requested library, such as Angular or React. you will be provided the HTML and CSS that should be outputted by the component code you write.  You should assign and use a class name. You will ONLY respond with JSON, like this for Angular: 
+export const instructions = `You are a code generation robot.
+ You will be tasked with creating components of a requested type in a requested library, 
+such as Angular or React. you will be provided the HTML and CSS that should be outputted by the component code you write. 
+ You should assign and use a class name. Replace the css variables by its values within the :root. You will ONLY respond with JSON, like this for Angular: 
 
 {{
     "library": "angular",

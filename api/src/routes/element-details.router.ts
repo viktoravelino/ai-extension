@@ -81,9 +81,17 @@ async function fetchCss(html: string, selectors: string[][]) {
   const parsedDynamicCss = css.parse(dynamicCssRules);
 
   let cssText = "";
+  let usedVars: string[] = [];
 
   for (const selector of selectors) {
     const cssRules = getRulesByClassSelector(selector, parsedDynamicCss);
+
+    cssRules[0].declarations.forEach((declaration) => {
+      if (declaration.value.includes("var(")) {
+        const customProperties = declaration.value.match(/--[\w-]+/g) ?? [];
+        usedVars.push(...customProperties);
+      }
+    });
 
     const stringifiedRules = css.stringify({
       type: "stylesheet",
@@ -93,7 +101,30 @@ async function fetchCss(html: string, selectors: string[][]) {
     cssText += `${stringifiedRules}\n`;
   }
 
-  return cssText;
+  const rootRule = (
+    parsedDynamicCss.stylesheet?.rules.filter((rule) => {
+      return (rule as Rule).selectors?.includes(":root");
+    }) as Rule[]
+  )
+    .map((rule) => rule.declarations)
+    .flat();
+
+  const varsValuesPairs = rootRule.filter((declaration) => {
+    return usedVars.includes(declaration.property);
+  });
+
+  const newRule: Rule = {
+    type: "rule",
+    selectors: [":root"],
+    declarations: varsValuesPairs,
+  };
+
+  const rootDeclarations = css.stringify({
+    type: "stylesheet",
+    stylesheet: { rules: [newRule] },
+  });
+
+  return `${rootDeclarations}\n${cssText}`;
 }
 
 interface Position {
@@ -138,27 +169,6 @@ function getRulesByClassSelector(
 
     return [...acc, ...classRules];
   }, [] as Rule[]);
-}
-
-function createArrayOfUniqueDeclarations(rules: Rule[]) {
-  return Array.from(
-    rules
-      .reduce((acc, rule) => {
-        rule.declarations.forEach((declaration) => {
-          acc.set(declaration.property, declaration);
-        });
-
-        return acc;
-      }, new Map<string, Declaration>())
-      .values()
-  );
-}
-
-function stringifyRules(rules: css.Rule[]) {
-  return css.stringify({
-    type: "stylesheet",
-    stylesheet: { rules },
-  });
 }
 
 interface Node {
