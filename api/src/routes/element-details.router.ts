@@ -26,8 +26,10 @@ router.get("/", async (req, res) => {
       fetchCss(pageHtml, selector),
     ]);
     res.json({
-      htmlText: beautify.html(htmlText!, { indent_size: 2, inline: [] }),
-      cssText: beautify.css(cssText!, { indent_size: 2 }),
+      files: [
+        { file: "index.html", content: htmlText },
+        { file: "index.css", content: cssText },
+      ],
     });
   } catch (error) {
     console.error(error);

@@ -13,8 +13,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/screenshot", screenshotRouter);
 app.use("/ai-selectors", aiSelectorsRouter);
+app.use("/screenshot", screenshotRouter);
 app.use("/element-details", elementDetails);
 app.use("/ai-framework-files", aiFrameworkFiles);
 
