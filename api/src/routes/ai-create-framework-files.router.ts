@@ -12,22 +12,32 @@ router.post("/", async (req, res) => {
     });
   }
 
-  const response = (await createFiles({
-    html,
-    css,
-    type: framework,
-    name: elementName,
-  })) as ResponseDTO;
+  try {
+    const response = (await createFiles({
+      html,
+      css,
+      type: framework,
+      name: elementName,
+    })) as ResponseDTO;
 
-  res.json({
-    ...response,
-    files: response.files.map((file) => {
+    const files = response.files.map((file) => {
       return {
         ...file,
         content: file.content.replace(/^```[a-z]*\n/, "").replace(/\n```$/, ""),
       };
-    }),
-  });
+    });
+
+    res.json({
+      ...response,
+      files,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message: "Error parsing response",
+    });
+  }
 });
 
 export default router;

@@ -35,6 +35,8 @@ export async function createFiles({ html, css, type, name }: CreateFilesDTO) {
       inputName: name,
     });
 
+    console.log(response);
+
     return JSON.parse(response);
   } catch (error) {
     return error;

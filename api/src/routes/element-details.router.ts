@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as cheerio from "cheerio";
 import css from "css";
-import beautify from "js-beautify";
 
 const router = Router();
 
@@ -21,14 +20,16 @@ router.get("/", async (req, res) => {
   const pageHtml = await response.text();
 
   try {
-    const [htmlText, cssText] = await Promise.all([
-      fetchHtml(pageHtml, selector),
-      fetchCss(pageHtml, selector),
-    ]);
+    const { childrenClasses, elementHtml } = await fetchHtml(
+      pageHtml,
+      selector
+    );
+    const cssText = await fetchCss(pageHtml, childrenClasses);
+
     res.json({
       files: [
-        { file: "index.html", content: htmlText },
-        { file: "index.css", content: cssText },
+        { file: "index.html", content: elementHtml },
+        { file: "index.scss", content: cssText },
       ],
     });
   } catch (error) {
@@ -44,15 +45,34 @@ export default router;
 async function fetchHtml(html: string, selector: string) {
   const $ = cheerio.load(html);
 
-  const elementHtml = $(selector).prop("outerHTML");
+  const element = $(selector);
 
-  return elementHtml;
+  const elementHtml = element.prop("outerHTML")!;
+
+  const childrenClasses = getChildrenClasses(parseHTML(elementHtml));
+
+  return {
+    elementHtml,
+    childrenClasses,
+  };
 }
 
-async function fetchCss(html: string, selector: string) {
-  const $ = cheerio.load(html);
+function getChildrenClasses(parsedHtml: any) {
+  const children = parsedHtml.children;
+  if (!children || children.length === 0) return [];
+  return children.reduce((acc: any, child: any) => {
+    const classes = child.attributes?.class;
+    if (classes) {
+      acc.push([...classes.split(" ")]);
+    }
+    acc.push(...getChildrenClasses(child));
 
-  // Extract CSS rules from style elements
+    return acc;
+  }, []);
+}
+
+async function fetchCss(html: string, selectors: string[][]) {
+  const $ = cheerio.load(html);
   const dynamicCssRules = $("style")
     .map((_, element) => $(element).text())
     .get()
@@ -60,21 +80,20 @@ async function fetchCss(html: string, selector: string) {
 
   const parsedDynamicCss = css.parse(dynamicCssRules);
 
-  const classes = selector.split(".").filter(Boolean);
+  let cssText = "";
 
-  const cssRules = getRulesByClassSelector(classes, parsedDynamicCss);
+  for (const selector of selectors) {
+    const cssRules = getRulesByClassSelector(selector, parsedDynamicCss);
 
-  const declarationsArray = createArrayOfUniqueDeclarations(cssRules);
+    const stringifiedRules = css.stringify({
+      type: "stylesheet",
+      stylesheet: { rules: cssRules },
+    });
 
-  const stringifiedRules = stringifyRules([
-    {
-      type: "rule",
-      selectors: [`.${classes[0]}`], // maybe change to be the target name
-      declarations: declarationsArray,
-    },
-  ]);
+    cssText += `${stringifiedRules}\n`;
+  }
 
-  return stringifiedRules;
+  return cssText;
 }
 
 interface Position {
@@ -107,7 +126,7 @@ function getRulesByClassSelector(
 ): Rule[] {
   return classes.reduce((acc, classSelector) => {
     const classRules = parsedDynamicCss?.stylesheet?.rules.filter((rule) => {
-      const ruleCopy = rule as Rule; // just to fiz TS errors
+      const ruleCopy = rule as Rule; // just to fix TS errors
 
       return (
         ruleCopy.type === "rule" &&
@@ -140,4 +159,67 @@ function stringifyRules(rules: css.Rule[]) {
     type: "stylesheet",
     stylesheet: { rules },
   });
+}
+
+interface Node {
+  type: string;
+  children?: Node[];
+  tag?: string;
+  attributes?: { [key: string]: string };
+  content?: string;
+}
+
+function parseHTML(rawHTML: string) {
+  const stack = [];
+  const rootNode = { type: "document", children: [] };
+  let currentNode: Node = rootNode;
+
+  const regexTag = /<(\/)?([a-zA-Z]+)([^<]*)?>/g;
+  const regexAttributes = /([a-zA-Z\-]+)="([^"]*)"/g;
+
+  let match;
+  let lastIndex = 0;
+
+  while ((match = regexTag.exec(rawHTML)) !== null) {
+    const [tag, isClosing, tagName, attributesStr] = match;
+    const index = match.index;
+
+    const text = rawHTML.slice(lastIndex, index);
+    if (text.trim().length > 0) {
+      currentNode.children?.push({ type: "text", content: text.trim() });
+    }
+
+    lastIndex = regexTag.lastIndex;
+
+    if (!isClosing) {
+      const node: any = {
+        type: "element",
+        tag: tagName,
+        attributes: {},
+        children: [],
+      };
+
+      let attrMatch;
+      while ((attrMatch = regexAttributes.exec(attributesStr)) !== null) {
+        const [, attrName, attrValue] = attrMatch;
+        node.attributes[attrName] = attrValue;
+      }
+
+      currentNode.children?.push(node);
+
+      if (!/\/>$/.test(tag)) {
+        stack.push(currentNode);
+        currentNode = node;
+      }
+    } else {
+      currentNode = stack.pop()!;
+    }
+  }
+
+  const remainingText = rawHTML.slice(lastIndex);
+  if (remainingText.trim().length > 0) {
+    currentNode.children?.push({ type: "text", content: remainingText.trim() });
+  }
+
+  return rootNode;
 }
