@@ -22,7 +22,7 @@ export async function createFiles({ html, css, type, name }: CreateFilesDTO) {
       ["system", instructions],
       [
         "user",
-        "{{ 'html': '{inputHtml}', 'css': '{inputCss}' 'type': '{inputType}', 'name': '{inputName}' }}",
+        "{{ 'html': '{inputHtml}', 'css': '{inputCss}' 'library': '{inputType}', 'name': '{inputName}' }}",
       ],
     ]);
 
@@ -34,8 +34,6 @@ export async function createFiles({ html, css, type, name }: CreateFilesDTO) {
       inputType: type,
       inputName: name,
     });
-
-    console.log(response);
 
     return JSON.parse(response);
   } catch (error) {

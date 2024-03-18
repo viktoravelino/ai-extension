@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as cheerio from "cheerio";
 import css from "css";
+import { parseHTMLToObject } from "../utils/parseHtml";
 
 const router = Router();
 
@@ -44,20 +45,21 @@ export default router;
 
 async function fetchHtml(html: string, selector: string) {
   const $ = cheerio.load(html);
-
   const element = $(selector);
-
   const elementHtml = element.prop("outerHTML")!;
-
-  const childrenClasses = getChildrenClasses(parseHTML(elementHtml));
-
+  const childrenClasses = getChildrenClassesFromHtmlElement(
+    parseHTMLToObject(elementHtml)
+  );
   return {
     elementHtml,
     childrenClasses,
   };
 }
 
-function getChildrenClasses(parsedHtml: any) {
+// It retrieves all the classes from the children of the element
+function getChildrenClassesFromHtmlElement(
+  parsedHtml: ReturnType<typeof parseHTMLToObject>
+): string[][] {
   const children = parsedHtml.children;
   if (!children || children.length === 0) return [];
   return children.reduce((acc: any, child: any) => {
@@ -65,49 +67,44 @@ function getChildrenClasses(parsedHtml: any) {
     if (classes) {
       acc.push([...classes.split(" ")]);
     }
-    acc.push(...getChildrenClasses(child));
-
+    acc.push(...getChildrenClassesFromHtmlElement(child));
     return acc;
   }, []);
 }
 
-async function fetchCss(html: string, selectors: string[][]) {
-  const $ = cheerio.load(html);
-  const dynamicCssRules = $("style")
-    .map((_, element) => $(element).text())
-    .get()
-    .join("\n");
-
-  const parsedDynamicCss = css.parse(dynamicCssRules);
-
-  let cssText = "";
-  let usedVars: string[] = [];
-
-  for (const selector of selectors) {
-    const cssRules = getRulesByClassSelector(selector, parsedDynamicCss);
-
-    cssRules[0].declarations.forEach((declaration) => {
-      if (declaration.value.includes("var(")) {
-        const customProperties = declaration.value.match(/--[\w-]+/g) ?? [];
-        usedVars.push(...customProperties);
-      }
-    });
-
-    const stringifiedRules = css.stringify({
-      type: "stylesheet",
-      stylesheet: { rules: cssRules },
-    });
-
-    cssText += `${stringifiedRules}\n`;
+// get css vars that are used in the dynamic css
+function getUsedVars(declaration: Declaration) {
+  if (!declaration.value.includes("var(")) {
+    return [];
   }
+  return declaration.value.match(/--[\w-]+/g) ?? [];
+}
+
+async function fetchCss(html: string, selectors: string[][]) {
+  const parsedDynamicCss = parseHtmlToCss(html);
 
   const rootRule = (
     parsedDynamicCss.stylesheet?.rules.filter((rule) => {
       return (rule as Rule).selectors?.includes(":root");
     }) as Rule[]
-  )
-    .map((rule) => rule.declarations)
-    .flat();
+  ).flatMap((rule) => rule.declarations);
+
+  const cssTexts = selectors.map((selector) => {
+    const cssRules = getRulesByClassSelector(selector, parsedDynamicCss);
+
+    const customProperties = cssRules.declarations.flatMap((declaration) =>
+      getUsedVars(declaration)
+    );
+
+    const stringifiedRules = stringifyRules([cssRules]);
+
+    return { customProperties, stringifiedRules };
+  });
+
+  const usedVars = cssTexts.flatMap((cssText) => cssText.customProperties);
+  const cssText = cssTexts
+    .map((cssText) => cssText.stringifiedRules)
+    .join("\n");
 
   const varsValuesPairs = rootRule.filter((declaration) => {
     return usedVars.includes(declaration.property);
@@ -119,10 +116,7 @@ async function fetchCss(html: string, selectors: string[][]) {
     declarations: varsValuesPairs,
   };
 
-  const rootDeclarations = css.stringify({
-    type: "stylesheet",
-    stylesheet: { rules: [newRule] },
-  });
+  const rootDeclarations = stringifyRules([newRule]);
 
   return `${rootDeclarations}\n${cssText}`;
 }
@@ -154,7 +148,7 @@ interface Rule {
 function getRulesByClassSelector(
   classes: string[],
   parsedDynamicCss: css.Stylesheet
-): Rule[] {
+): Rule {
   return classes.reduce((acc, classSelector) => {
     const classRules = parsedDynamicCss?.stylesheet?.rules.filter((rule) => {
       const ruleCopy = rule as Rule; // just to fix TS errors
@@ -168,68 +162,22 @@ function getRulesByClassSelector(
     }) as Rule[];
 
     return [...acc, ...classRules];
-  }, [] as Rule[]);
+  }, [] as Rule[])[0];
 }
 
-interface Node {
-  type: string;
-  children?: Node[];
-  tag?: string;
-  attributes?: { [key: string]: string };
-  content?: string;
+function stringifyRules(rules: Rule[]) {
+  return css.stringify({
+    type: "stylesheet",
+    stylesheet: { rules },
+  });
 }
 
-function parseHTML(rawHTML: string) {
-  const stack = [];
-  const rootNode = { type: "document", children: [] };
-  let currentNode: Node = rootNode;
+function parseHtmlToCss(html: string) {
+  const $ = cheerio.load(html);
+  const dynamicCssRules = $("style")
+    .map((_, element) => $(element).text())
+    .get()
+    .join("\n");
 
-  const regexTag = /<(\/)?([a-zA-Z]+)([^<]*)?>/g;
-  const regexAttributes = /([a-zA-Z\-]+)="([^"]*)"/g;
-
-  let match;
-  let lastIndex = 0;
-
-  while ((match = regexTag.exec(rawHTML)) !== null) {
-    const [tag, isClosing, tagName, attributesStr] = match;
-    const index = match.index;
-
-    const text = rawHTML.slice(lastIndex, index);
-    if (text.trim().length > 0) {
-      currentNode.children?.push({ type: "text", content: text.trim() });
-    }
-
-    lastIndex = regexTag.lastIndex;
-
-    if (!isClosing) {
-      const node: any = {
-        type: "element",
-        tag: tagName,
-        attributes: {},
-        children: [],
-      };
-
-      let attrMatch;
-      while ((attrMatch = regexAttributes.exec(attributesStr)) !== null) {
-        const [, attrName, attrValue] = attrMatch;
-        node.attributes[attrName] = attrValue;
-      }
-
-      currentNode.children?.push(node);
-
-      if (!/\/>$/.test(tag)) {
-        stack.push(currentNode);
-        currentNode = node;
-      }
-    } else {
-      currentNode = stack.pop()!;
-    }
-  }
-
-  const remainingText = rawHTML.slice(lastIndex);
-  if (remainingText.trim().length > 0) {
-    currentNode.children?.push({ type: "text", content: remainingText.trim() });
-  }
-
-  return rootNode;
+  return css.parse(dynamicCssRules);
 }

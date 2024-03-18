@@ -43,8 +43,6 @@ export function ElementFrameworkCreation() {
       },
     });
 
-    console.log(data);
-
     setData(data ?? null);
   }, [dataToFetch, fetchJSONWithBody]);
 

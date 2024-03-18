@@ -70,8 +70,6 @@ export async function fetchSelectorsFromOpenAI(
     console.log("Invoking chain...");
     const answer = await chain.invoke(target);
 
-    console.log("Chain response: ", answer);
-
     // try to parse the answer as json and return it
     // if it fails, convert to an array
     try {
