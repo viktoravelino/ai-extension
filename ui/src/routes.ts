@@ -4,5 +4,4 @@ export const routes = {
   notFound: "*",
   listElements: "list-elements",
   elementDetails: "element-details",
-  elementFrameworkCreation: "element-framework-creation",
 };

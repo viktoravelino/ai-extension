@@ -10,7 +10,6 @@ import { SearchElementsPage } from "./pages/search-selectors";
 import { routes } from "./routes";
 import { ListElements } from "./pages/list-elements";
 import { ElementDetails } from "./pages/element-details";
-import { ElementFrameworkCreation } from "./pages/element-framework-creation";
 
 const path = window.location.href;
 const isExtension =
@@ -34,10 +33,6 @@ const router = createRouter([
   {
     path: routes.elementDetails,
     element: <ElementDetails />,
-  },
-  {
-    path: routes.elementFrameworkCreation,
-    element: <ElementFrameworkCreation />,
   },
   {
     path: routes.notFound,

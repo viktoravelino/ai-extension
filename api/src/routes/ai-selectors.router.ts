@@ -9,6 +9,11 @@ import { MOCK_SELECTORS_FROM_AI } from "../mockData";
 const router = Router();
 
 router.get("/", async (req, res) => {
+  if (USE_MOCK) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    return res.json(MOCK_SELECTORS_FROM_AI);
+  }
+
   const url = req.query.url as string;
   const target = req.query.target as string;
 
@@ -16,10 +21,6 @@ router.get("/", async (req, res) => {
     return res.status(400).json({
       message: "Missing url or target param",
     });
-  }
-
-  if (USE_MOCK) {
-    return res.json(MOCK_SELECTORS_FROM_AI);
   }
 
   const docsCreated = await fetchHtmlAndCreateDataFile(url);

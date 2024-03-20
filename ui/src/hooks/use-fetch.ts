@@ -43,38 +43,5 @@ export function useFetch(baseUrl: string, initialLoading = false) {
     [baseUrl]
   );
 
-  interface FetchJSONWithBodyOptions<D> {
-    endpoint: string;
-    method?: "POST";
-    body: D;
-  }
-
-  const fetchJSONWithBody = useCallback(
-    async <T, D>({
-      body,
-      endpoint,
-      method = "POST",
-    }: FetchJSONWithBodyOptions<D>) => {
-      setIsLoading(true);
-
-      try {
-        const response = await fetch(`${baseUrl}/${endpoint}`, {
-          method,
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        });
-        const data = (await response.json()) as T;
-        return data;
-      } catch (err: unknown) {
-        setError("Error fetching. Please go back and try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [baseUrl]
-  );
-
-  return { fetchJSON, isLoading, error, fetchStream, fetchJSONWithBody };
+  return { fetchJSON, isLoading, error, fetchStream };
 }
