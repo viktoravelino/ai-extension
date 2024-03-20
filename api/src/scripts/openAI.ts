@@ -11,6 +11,7 @@ import {
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { formatDocumentsAsString } from "langchain/util/document";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
+import { OurAI } from "../lib/open-ai";
 
 const METADATA_PROMPT = `
 You are a helpful code debugger.
@@ -36,20 +37,12 @@ export async function fetchSelectorsFromOpenAI(
   vectorStore: MemoryVectorStore,
   { target }: { target: string }
 ) {
+  const ourAI = new OurAI();
+
   try {
     console.log("Fetching selectors...");
 
-    const model = new OpenAI({
-      modelName: "gpt-3.5-turbo-1106",
-      temperature: 0.5,
-      topP: 1,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      maxTokens: 256,
-      modelKwargs: {
-        response_format: { type: "json_object" },
-      },
-    });
+    const model = ourAI.getInstance();
 
     const vectorStoreRetriever = vectorStore.asRetriever({
       k: 100,
@@ -76,8 +69,6 @@ export async function fetchSelectorsFromOpenAI(
 
     console.log("Invoking chain...");
     const answer = await chain.invoke(target);
-
-    console.log("Chain response: ", answer);
 
     // try to parse the answer as json and return it
     // if it fails, convert to an array
