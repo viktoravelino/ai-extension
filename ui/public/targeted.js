@@ -78,19 +78,7 @@ function toggleTargetMode() {
         }
     }
 }
-
-function onElementMouseDown(event) {
-    if (!isTargetMode) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-
-    console.log('Clicked Element2:', event.target);
-    // This could be in a content script or background script
-    const elementHtml = event.target.outerHTML;
-    console.log('Clicked Element HTML:', elementHtml);
-
+function sendElementHtml(elementHtml) {
     // Send the element's HTML representation to the DevTools panel
     chrome.runtime.sendMessage(
         { action: 'elementSelected', elementHtml: elementHtml },
@@ -98,9 +86,19 @@ function onElementMouseDown(event) {
             console.log('Response from panel:', response);
         }
     );
-    toggleTargetMode();
+}
+function onElementMouseDown(event) {
+    if (!isTargetMode) return;
+    console.log('Clicked Element2:', event.target);
+    // This could be in a content script or background script
+    const elementHtml = event.target.outerHTML;
+    sendElementHtml(elementHtml);
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
     // Prevent any further default actions or event propagation
     addStopPropagationListener(event.target);
+    toggleTargetMode();
 }
 
 function stopPropagationListener(e) {
