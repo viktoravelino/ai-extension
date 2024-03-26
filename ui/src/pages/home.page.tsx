@@ -1,22 +1,44 @@
-import { AutoSearchForm } from "@/components/auto-search-form/auto-search-form.component";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AutoSearchForm } from '@/components/auto-search-form/auto-search-form.component';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
+import browser from 'webextension-polyfill';
 
 export function HomePage() {
-  return (
-    <Tabs
-      defaultValue="auto-search"
-      className="w-[400px] flex flex-col items-center justify-center m-auto"
-    >
-      <TabsList>
-        <TabsTrigger value="auto-search">Automatic Search</TabsTrigger>
-        <TabsTrigger value="manual-search">Manual Search</TabsTrigger>
-      </TabsList>
+    const [isTargetMode, setIsTargetMode] = useState(false);
 
-      <TabsContent value="auto-search" className="w-full">
-        <AutoSearchForm />
-      </TabsContent>
+    const toggleTargetMode = async () => {
+        setIsTargetMode(!isTargetMode);
 
-      <TabsContent value="manual-search">Manual Search 2</TabsContent>
-    </Tabs>
-  );
+        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+        // const tabId = tab?.id || -1;
+
+        if (tab.id) {
+            chrome.tabs.sendMessage(tab.id, { action: 'toggleTargetMode', enable: !isTargetMode });
+        }
+        // Close the popup window after sending the message
+        window.close();
+    };
+
+    return (
+        <Tabs
+            defaultValue='auto-search'
+            className='w-[400px] flex flex-col items-center justify-center m-auto'
+        >
+            <TabsList>
+                <TabsTrigger value='auto-search'>Automated Search</TabsTrigger>
+                <TabsTrigger value='target-search'>Targeted Mode</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value='auto-search' className='w-full'>
+                <AutoSearchForm />
+            </TabsContent>
+
+            <TabsContent value='target-search'>
+                <Button variant='default' className='my-5' onClick={toggleTargetMode}>
+                    {isTargetMode ? 'Turn OFF Target Mode' : 'Turn ON Target Mode'}
+                </Button>
+            </TabsContent>
+        </Tabs>
+    );
 }
