@@ -1,4 +1,5 @@
 // Assuming necessary setup for theme toggling remains unchanged...
+
 /* global chrome */
 let isTargetMode = false;
 let hoveredElement = null;
@@ -49,7 +50,7 @@ function overrideEventMethods(enable) {
 let styleSheet;
 // Event listener to toggle the target mode
 function toggleTargetMode() {
-    isTargetMode = !isTargetMode;
+    // isTargetMode = !isTargetMode;
     // toggleButton.textContent = `Target Mode ${isTargetMode ? 'ON' : 'OFF'}`;
     if (isTargetMode) {
         if (!styleSheet) {
@@ -86,6 +87,10 @@ function onElementMouseDown(event) {
     event.stopImmediatePropagation();
 
     console.log('Clicked Element2:', event.target);
+    // This could be in a content script or background script
+    chrome.runtime.sendMessage({ target: event.target }, function (response) {
+        console.log('Response from panel:', response);
+    });
     toggleTargetMode();
     // Prevent any further default actions or event propagation
     addStopPropagationListener(event.target);
@@ -173,9 +178,13 @@ function removeOverlay() {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-    if (message.action === 'toggleTargetMode') {
-        console.log('Toggle Target Mode');
-        toggleTargetMode();
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.action === 'requestToggleTargetMode') {
+        // Make sure this matches the action sent from panel.js
+        isTargetMode = !isTargetMode; // Assuming you toggle the state here
+        console.log('Target Mode toggled to: ', isTargetMode);
+        toggleTargetMode(); // Ensure this function doesn't asynchronously affect isTargetMode after the response is sent
+        sendResponse({ action: 'toggleTargetMode', isTargetMode: isTargetMode });
     }
+    return true; // Keep the message channel open for async response
 });
