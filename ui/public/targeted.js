@@ -88,9 +88,16 @@ function onElementMouseDown(event) {
 
     console.log('Clicked Element2:', event.target);
     // This could be in a content script or background script
-    chrome.runtime.sendMessage({ target: event.target }, function (response) {
-        console.log('Response from panel:', response);
-    });
+    const elementHtml = event.target.outerHTML;
+    console.log('Clicked Element HTML:', elementHtml);
+
+    // Send the element's HTML representation to the DevTools panel
+    chrome.runtime.sendMessage(
+        { action: 'elementSelected', elementHtml: elementHtml },
+        function (response) {
+            console.log('Response from panel:', response);
+        }
+    );
     toggleTargetMode();
     // Prevent any further default actions or event propagation
     addStopPropagationListener(event.target);
