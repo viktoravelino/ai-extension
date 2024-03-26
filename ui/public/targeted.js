@@ -61,13 +61,14 @@ function toggleTargetMode() {
         }
         overrideEventMethods(true);
         allowedAddEventListenerFn = stopPropagationListener;
-        document.addEventListener('mousedown', onElementMouseDown, true);
+        // document.addEventListener('mousedown', onElementMouseDown, true);
+        document.addEventListener('mouseup', onElementMouseUp, true);
         document.addEventListener('mouseover', onElementMouseOver);
         document.addEventListener('mouseout', onElementMouseOut);
     } else {
         overrideEventMethods(false);
         allowedAddEventListenerFn = null;
-        document.removeEventListener('mousedown', onElementMouseDown, true);
+        document.removeEventListener('mousedown', onElementMouseUp, true);
         document.removeEventListener('mouseover', onElementMouseOver);
         document.removeEventListener('mouseout', onElementMouseOut);
         removeOverlay();
@@ -87,7 +88,7 @@ function sendElementHtml(elementHtml) {
         }
     );
 }
-function onElementMouseDown(event) {
+function onElementMouseUp(event) {
     if (!isTargetMode) return;
     console.log('Clicked Element2:', event.target);
     // This could be in a content script or background script
