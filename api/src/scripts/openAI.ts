@@ -45,7 +45,7 @@ export async function fetchSelectorsFromOpenAI(
     const model = ourAI.getInstance();
 
     const vectorStoreRetriever = vectorStore.asRetriever({
-      k: 100,
+      k: 200,
     });
 
     const messages = [
@@ -59,7 +59,12 @@ export async function fetchSelectorsFromOpenAI(
 
     const chain = RunnableSequence.from([
       {
-        html: vectorStoreRetriever.pipe(formatDocumentsAsString),
+        html: vectorStoreRetriever.pipe((asd) => {
+          const test = formatDocumentsAsString(asd);
+          console.log(test);
+
+          return test;
+        }),
         target: new RunnablePassthrough(),
       },
       prompt,

@@ -27,7 +27,7 @@ router.get("/", async (req, res, next) => {
     return next();
   }
 
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
   await page.goto(url);
   await page.setViewport({ width: 1080, height: 1024 });

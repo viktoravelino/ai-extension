@@ -149,20 +149,22 @@ function getRulesByClassSelector(
   classes: string[],
   parsedDynamicCss: css.Stylesheet
 ): Rule {
-  return classes.reduce((acc, classSelector) => {
-    const classRules = parsedDynamicCss?.stylesheet?.rules.filter((rule) => {
-      const ruleCopy = rule as Rule; // just to fix TS errors
+  return (
+    classes.reduce((acc, classSelector) => {
+      const classRules = parsedDynamicCss?.stylesheet?.rules.filter((rule) => {
+        const ruleCopy = rule as Rule; // just to fix TS errors
 
-      return (
-        ruleCopy.type === "rule" &&
-        ruleCopy.selectors.some(
-          (selector: string) => selector === `.${classSelector}` // it does not include other states like :hover, :active, etc.
-        )
-      );
-    }) as Rule[];
+        return (
+          ruleCopy.type === "rule" &&
+          ruleCopy.selectors.some(
+            (selector: string) => selector === `.${classSelector}` // it does not include other states like :hover, :active, etc.
+          )
+        );
+      }) as Rule[];
 
-    return [...acc, ...classRules];
-  }, [] as Rule[])[0];
+      return [...acc, ...classRules];
+    }, [] as Rule[])[0] || { type: "rule", selectors: [], declarations: [] }
+  );
 }
 
 function stringifyRules(rules: Rule[]) {
