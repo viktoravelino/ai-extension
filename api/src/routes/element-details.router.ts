@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as cheerio from "cheerio";
 import css from "css";
-import beautify from "js-beautify";
+import { parseHTMLToObject } from "../utils/parseHtml";
 
 const router = Router();
 
@@ -21,13 +21,17 @@ router.get("/", async (req, res) => {
   const pageHtml = await response.text();
 
   try {
-    const [htmlText, cssText] = await Promise.all([
-      fetchHtml(pageHtml, selector),
-      fetchCss(pageHtml, selector),
-    ]);
+    const { childrenClasses, elementHtml } = await fetchHtml(
+      pageHtml,
+      selector
+    );
+    const cssText = await fetchCss(pageHtml, childrenClasses);
+
     res.json({
-      htmlText: beautify.html(htmlText!, { indent_size: 2, inline: [] }),
-      cssText: beautify.css(cssText!, { indent_size: 2 }),
+      files: [
+        { file: "index.html", content: elementHtml },
+        { file: "index.scss", content: cssText },
+      ],
     });
   } catch (error) {
     console.error(error);
@@ -41,38 +45,80 @@ export default router;
 
 async function fetchHtml(html: string, selector: string) {
   const $ = cheerio.load(html);
-
-  const elementHtml = $(selector).prop("outerHTML");
-
-  return elementHtml;
+  const element = $(selector);
+  const elementHtml = element.prop("outerHTML")!;
+  const childrenClasses = getChildrenClassesFromHtmlElement(
+    parseHTMLToObject(elementHtml)
+  );
+  return {
+    elementHtml,
+    childrenClasses,
+  };
 }
 
-async function fetchCss(html: string, selector: string) {
-  const $ = cheerio.load(html);
+// It retrieves all the classes from the children of the element
+function getChildrenClassesFromHtmlElement(
+  parsedHtml: ReturnType<typeof parseHTMLToObject>
+): string[][] {
+  const children = parsedHtml.children;
+  if (!children || children.length === 0) return [];
+  return children.reduce((acc: any, child: any) => {
+    const classes = child.attributes?.class;
+    if (classes) {
+      acc.push([...classes.split(" ")]);
+    }
+    acc.push(...getChildrenClassesFromHtmlElement(child));
+    return acc;
+  }, []);
+}
 
-  // Extract CSS rules from style elements
-  const dynamicCssRules = $("style")
-    .map((_, element) => $(element).text())
-    .get()
+// get css vars that are used in the dynamic css
+function getUsedVars(declaration: Declaration) {
+  if (!declaration.value.includes("var(")) {
+    return [];
+  }
+  return declaration.value.match(/--[\w-]+/g) ?? [];
+}
+
+async function fetchCss(html: string, selectors: string[][]) {
+  const parsedDynamicCss = parseHtmlToCss(html);
+
+  const rootRule = (
+    parsedDynamicCss.stylesheet?.rules.filter((rule) => {
+      return (rule as Rule).selectors?.includes(":root");
+    }) as Rule[]
+  ).flatMap((rule) => rule.declarations);
+
+  const cssTexts = selectors.map((selector) => {
+    const cssRules = getRulesByClassSelector(selector, parsedDynamicCss);
+
+    const customProperties = cssRules.declarations.flatMap((declaration) =>
+      getUsedVars(declaration)
+    );
+
+    const stringifiedRules = stringifyRules([cssRules]);
+
+    return { customProperties, stringifiedRules };
+  });
+
+  const usedVars = cssTexts.flatMap((cssText) => cssText.customProperties);
+  const cssText = cssTexts
+    .map((cssText) => cssText.stringifiedRules)
     .join("\n");
 
-  const parsedDynamicCss = css.parse(dynamicCssRules);
+  const varsValuesPairs = rootRule.filter((declaration) => {
+    return usedVars.includes(declaration.property);
+  });
 
-  const classes = selector.split(".").filter(Boolean);
+  const newRule: Rule = {
+    type: "rule",
+    selectors: [":root"],
+    declarations: varsValuesPairs,
+  };
 
-  const cssRules = getRulesByClassSelector(classes, parsedDynamicCss);
+  const rootDeclarations = stringifyRules([newRule]);
 
-  const declarationsArray = createArrayOfUniqueDeclarations(cssRules);
-
-  const stringifiedRules = stringifyRules([
-    {
-      type: "rule",
-      selectors: [classes[0]], // maybe change to be the target name
-      declarations: declarationsArray,
-    },
-  ]);
-
-  return stringifiedRules;
+  return `${rootDeclarations}\n${cssText}`;
 }
 
 interface Position {
@@ -102,40 +148,38 @@ interface Rule {
 function getRulesByClassSelector(
   classes: string[],
   parsedDynamicCss: css.Stylesheet
-): Rule[] {
-  return classes.reduce((acc, classSelector) => {
-    const classRules = parsedDynamicCss?.stylesheet?.rules.filter((rule) => {
-      const ruleCopy = rule as Rule; // just to fiz TS errors
+): Rule {
+  return (
+    classes.reduce((acc, classSelector) => {
+      const classRules = parsedDynamicCss?.stylesheet?.rules.filter((rule) => {
+        const ruleCopy = rule as Rule; // just to fix TS errors
 
-      return (
-        ruleCopy.type === "rule" &&
-        ruleCopy.selectors.some(
-          (selector: string) => selector === `.${classSelector}` // it does not include other states like :hover, :active, etc.
-        )
-      );
-    }) as Rule[];
+        return (
+          ruleCopy.type === "rule" &&
+          ruleCopy.selectors.some(
+            (selector: string) => selector === `.${classSelector}` // it does not include other states like :hover, :active, etc.
+          )
+        );
+      }) as Rule[];
 
-    return [...acc, ...classRules];
-  }, [] as Rule[]);
-}
-
-function createArrayOfUniqueDeclarations(rules: Rule[]) {
-  return Array.from(
-    rules
-      .reduce((acc, rule) => {
-        rule.declarations.forEach((declaration) => {
-          acc.set(declaration.property, declaration);
-        });
-
-        return acc;
-      }, new Map<string, Declaration>())
-      .values()
+      return [...acc, ...classRules];
+    }, [] as Rule[])[0] || { type: "rule", selectors: [], declarations: [] }
   );
 }
 
-function stringifyRules(rules: css.Rule[]) {
+function stringifyRules(rules: Rule[]) {
   return css.stringify({
     type: "stylesheet",
     stylesheet: { rules },
   });
+}
+
+function parseHtmlToCss(html: string) {
+  const $ = cheerio.load(html);
+  const dynamicCssRules = $("style")
+    .map((_, element) => $(element).text())
+    .get()
+    .join("\n");
+
+  return css.parse(dynamicCssRules);
 }

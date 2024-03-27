@@ -1,3 +1,50 @@
+
+export const MOCK_HTML = `<button class="MuiButton-root MuiButton-variantSolid MuiButton-colorPrimary MuiButton-sizeMd css-4qk412">
+<span class="MuiButton-startDecorator css-zcktug">
+  <svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeXl2 css-l6vif8" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="FavoriteBorderIcon">
+    <path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3m-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05"></path>
+  </svg>
+</span>Hello world
+</button>`;
+export const MOCK_CSS = `.MuiButton-root {
+  --Icon-margin: initial;
+  --Icon-color: currentColor;
+  --Icon-fontSize: var(--joy-fontSize-xl);
+  --CircularProgress-size: 20px;
+  --CircularProgress-thickness: 2px;
+  --Button-gap: 0.5rem;
+  min-height: var(--Button-minHeight, 2.25rem);
+  font-size: var(--joy-fontSize-sm);
+  padding-block: var(--Button-paddingBlock, 0.375rem);
+  padding-inline: 1rem;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+  border-radius: var(--Button-radius, var(--joy-radius-sm));
+  margin: var(--Button-margin);
+  border: none;
+  background-color: var(--variant-solidBg, var(--joy-palette-primary-solidBg, var(--joy-palette-primary-500, #0B6BCB)));
+  cursor: pointer;
+  display: inline-flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  position: relative;
+  -webkit-text-decoration: none;
+  text-decoration: none;
+  font-family: var(--joy-fontFamily-body);
+  font-weight: var(--joy-fontWeight-lg);
+  line-height: var(--joy-lineHeight-md);
+  --variant-borderWidth: 0px;
+  color: var(--variant-solidColor, var(--joy-palette-primary-solidColor, var(--joy-palette-common-white, #FFF)));
+}`;
+export const MOCK_FRAMEWORK_TYPE = "react";
+const MOCK_ELEMENT_NAME = "Button";
+
 export const MOCK_SELECTORS_FROM_AI = [
   ".MuiButton-root",
   ".MuiButton-variantSolid",

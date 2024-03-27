@@ -7,15 +7,6 @@ import { MOCK_ELEMENTS_SCREENSHOT } from "../mockData";
 const router = Router();
 
 router.get("/", async (req, res, next) => {
-  if (USE_MOCK) {
-    for await (const element of MOCK_ELEMENTS_SCREENSHOT) {
-      await new Promise((r) => setTimeout(r, 1000));
-      res.write(JSON.stringify(element) + "\n");
-    }
-    res.end();
-    return next();
-  }
-
   const selectors = JSON.parse(req.query.selectors as string) as string[];
   const url = req.query.url as string;
 
@@ -27,7 +18,16 @@ router.get("/", async (req, res, next) => {
     });
   }
 
-  const browser = await puppeteer.launch();
+  if (USE_MOCK) {
+    for await (const element of MOCK_ELEMENTS_SCREENSHOT) {
+      await new Promise((r) => setTimeout(r, 1000));
+      res.write(JSON.stringify(element) + "\n");
+    }
+    res.end();
+    return next();
+  }
+
+  const browser = await puppeteer.launch({ headless: "new" });
   const page = await browser.newPage();
   await page.goto(url);
   await page.setViewport({ width: 1080, height: 1024 });

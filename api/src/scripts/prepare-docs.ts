@@ -3,7 +3,7 @@ import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
 export async function prepareDocsIntoVectorStore(
   docs: Parameters<typeof MemoryVectorStore.fromDocuments>[0],
-  embeddings: OpenAIEmbeddings,
+  embeddings: OpenAIEmbeddings
 ) {
   try {
     console.log("Embedding and storing docs...");
