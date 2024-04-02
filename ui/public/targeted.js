@@ -81,6 +81,7 @@ function toggleTargetMode() {
 }
 function sendElementHtml(elementHtml) {
     // Send the element's HTML representation to the DevTools panel
+
     chrome.runtime.sendMessage(
         { action: 'elementSelected', elementHtml: elementHtml },
         function (response) {

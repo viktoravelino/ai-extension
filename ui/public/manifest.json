@@ -2,7 +2,14 @@
     "manifest_version": 3,
     "name": "Component Builder",
     "version": "1.0",
-    "permissions": ["scripting", "activeTab", "devtools"],
+    "permissions": [
+        "scripting",
+        "activeTab",
+        "devtools",
+        "<all_urls>",
+        "tabs",
+        "http://localhost:3001/*"
+    ],
     "devtools_page": "devtools.html",
     "action": {
         "default_popup": "index.html"
@@ -18,7 +25,11 @@
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["targeted.js"]
+            "js": ["targeted.js", "tailwind.js"]
         }
-    ]
+    ],
+    "css": ["styles.css"],
+    "content_security_policy": {
+        "script-src": "script-src 'self' https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/shoelace-autoloader.js; object-src 'self'"
+    }
 }

@@ -2,12 +2,26 @@
 <html>
     <head>
         <title>DevTools Panel</title>
-        <!-- <script src="tailwind.css"></script> -->
+
+        <link rel="stylesheet" href="./styles.css" />
+
+        <script src="./tailwind.js"></script>
     </head>
     <body>
-        <h1>Target Mode</h1>
-        <div id="elementHtml"></div>
-        <button class="bg-black text-white" id="toggleButton">Toggle Target Mode</button>
-        <script src="panel.js"></script>
+        <div class="flex justify-center items-center h-screen">
+            <div class="flex flex-col items-center">
+                <h1 class="text-3xl font-bold mb-5">Target Mode</h1>
+                <div id="elementHtml"></div>
+                <div id="elementCSS"></div>
+                <div id="tabURL"></div>
+                <button class="button rounded border px-3 text-sm" id="toggleButton">
+                    Click me
+                </button>
+                <button disabled class="button rounded border px-3 text-sm" id="getCSS">
+                    Get CSS
+                </button>
+            </div>
+        </div>
+        <script src="./panel.js"></script>
     </body>
 </html>
