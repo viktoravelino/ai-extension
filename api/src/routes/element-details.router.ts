@@ -1,14 +1,8 @@
 import { Router } from "express";
 import * as cheerio from "cheerio";
 import { parseHTMLToObject } from "../utils/parseHtml";
-import {
-  Rule,
-  fetchCss,
-  getRulesByClassSelector,
-  getUsedVars,
-  parseHtmlToCss,
-  stringifyRules,
-} from "../utils/fetch-css";
+import { fetchCss } from "../utils/fetch-css";
+import { forbidden } from "../utils/filter";
 
 const router = Router();
 
@@ -29,11 +23,17 @@ router.get("/", async (req, res) => {
   const response = await fetch(url);
   const pageHtml = await response.text();
 
+  const filteredSelector = selector
+    .split(".")
+    .filter((s) => !forbidden.some((f) => s.includes(f)))
+    .join(".");
+
   try {
     const { childrenClasses, elementHtml } = await fetchHtml(
       pageHtml,
-      selector
+      filteredSelector
     );
+
     const cssText = await fetchCss(pageHtml, childrenClasses, url);
 
     res.json({

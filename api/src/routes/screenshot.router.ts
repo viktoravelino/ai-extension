@@ -3,6 +3,7 @@ import puppeteer, { ElementHandle, Page } from "puppeteer";
 import { asyncFilter } from "../utils/asyncFilter";
 import { USE_MOCK } from "../config";
 import { MOCK_ELEMENTS_SCREENSHOT } from "../mockData";
+import { forbidden } from "../utils/filter";
 
 const router = Router();
 
@@ -36,7 +37,14 @@ router.get("/", async (req, res, next) => {
   await new Promise((r) => setTimeout(r, 2000));
 
   console.log("Finding elements...");
-  const elementsFound = await findElementsBySelectors(selectors, page);
+  const filteredSelectors = selectors.map((selector) =>
+    selector
+      .split(".")
+      .filter((s) => !forbidden.some((f) => s.includes(f)))
+      .join(".")
+  );
+
+  const elementsFound = await findElementsBySelectors(filteredSelectors, page);
 
   console.log("Filtering elements...");
   const elementsWithContent = await filterElementsWithContent(elementsFound);
@@ -95,7 +103,6 @@ async function filterElementsWithContent(
       ((await el.evaluate((el) => el.textContent)) !== "" ||
         (await el.evaluate((el) => el.textContent))) !== " ";
     if (!hasContent) {
-      console.log("no content");
       return false;
     }
     return true;
