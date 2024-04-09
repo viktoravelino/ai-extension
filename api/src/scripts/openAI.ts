@@ -61,7 +61,6 @@ export async function fetchSelectorsFromOpenAI(
       {
         html: vectorStoreRetriever.pipe((asd) => {
           const test = formatDocumentsAsString(asd);
-          console.log(test);
 
           return test;
         }),

@@ -1,8 +1,12 @@
 import * as cheerio from "cheerio";
 import css from "css";
 
-export async function fetchCss(html: string, selectors: string[][]) {
-  const parsedDynamicCss = parseHtmlToCss(html);
+export async function fetchCss(
+  html: string,
+  selectors: string[][],
+  url: string
+) {
+  const parsedDynamicCss = await parseHtmlToCss({ html, url });
 
   const rootRule = (
     parsedDynamicCss.stylesheet?.rules.filter((rule) => {
@@ -13,11 +17,11 @@ export async function fetchCss(html: string, selectors: string[][]) {
   const cssTexts = selectors.map((selector) => {
     const cssRules = getRulesByClassSelector(selector, parsedDynamicCss);
 
-    const customProperties = cssRules.declarations.flatMap((declaration) =>
-      getUsedVars(declaration)
+    const customProperties = cssRules.flatMap((rule) =>
+      rule.declarations.flatMap((declaration) => getUsedVars(declaration))
     );
 
-    const stringifiedRules = stringifyRules([cssRules]);
+    const stringifiedRules = stringifyRules(cssRules);
 
     return { customProperties, stringifiedRules };
   });
@@ -42,20 +46,41 @@ export async function fetchCss(html: string, selectors: string[][]) {
   return `${rootDeclarations}\n${cssText}`;
 }
 
-export function parseHtmlToCss(html: string) {
+interface ParseHtmlToCssProps {
+  url: string;
+  html: string;
+}
+//`https://ui.shadcn.com/${href!}`
+export async function parseHtmlToCss({ url, html }: ParseHtmlToCssProps) {
   const $ = cheerio.load(html);
   const dynamicCssRules = $("style")
     .map((_, element) => $(element).text())
     .get()
     .join("\n");
 
-  return css.parse(dynamicCssRules);
+  const index = url?.indexOf("/", 8);
+  const baseUrl = url?.slice(0, index);
+
+  const linkStyles = $('link[rel="stylesheet"]')
+    .map(async (_, element) => {
+      const href = $(element).attr("href");
+      return await fetch(`${baseUrl}${href!}`)
+        .then((res) => res.text())
+        .catch((e) => {
+          return "";
+        });
+    })
+    .get();
+  const responses = await Promise.all(linkStyles);
+  const linkCssText = responses.join("\n");
+
+  return css.parse(`${dynamicCssRules}\n${linkCssText}`);
 }
 
 export function getRulesByClassSelector(
   classes: string[],
   parsedDynamicCss: css.Stylesheet
-): Rule {
+): Rule[] {
   return (
     classes.reduce((acc, classSelector) => {
       const classRules = parsedDynamicCss?.stylesheet?.rules.filter((rule) => {
@@ -70,7 +95,7 @@ export function getRulesByClassSelector(
       }) as Rule[];
 
       return [...acc, ...classRules];
-    }, [] as Rule[])[0] || { type: "rule", selectors: [], declarations: [] }
+    }, [] as Rule[]) || { type: "rule", selectors: [], declarations: [] }
   );
 }
 

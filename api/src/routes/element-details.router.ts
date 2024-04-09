@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { parseHTMLToObject } from "../utils/parseHtml";
 import {
   Rule,
+  fetchCss,
   getRulesByClassSelector,
   getUsedVars,
   parseHtmlToCss,
@@ -23,6 +24,8 @@ router.get("/", async (req, res) => {
     });
   }
 
+  console.log(url);
+
   const response = await fetch(url);
   const pageHtml = await response.text();
 
@@ -31,7 +34,7 @@ router.get("/", async (req, res) => {
       pageHtml,
       selector
     );
-    const cssText = await fetchCss(pageHtml, childrenClasses);
+    const cssText = await fetchCss(pageHtml, childrenClasses, url);
 
     res.json({
       files: [
@@ -76,47 +79,4 @@ function getChildrenClassesFromHtmlElement(
     acc.push(...getChildrenClassesFromHtmlElement(child));
     return acc;
   }, []);
-}
-
-// get css vars that are used in the dynamic css
-
-async function fetchCss(html: string, selectors: string[][]) {
-  const parsedDynamicCss = parseHtmlToCss(html);
-
-  const rootRule = (
-    parsedDynamicCss.stylesheet?.rules.filter((rule) => {
-      return (rule as Rule).selectors?.includes(":root");
-    }) as Rule[]
-  ).flatMap((rule) => rule.declarations);
-
-  const cssTexts = selectors.map((selector) => {
-    const cssRules = getRulesByClassSelector(selector, parsedDynamicCss);
-
-    const customProperties = cssRules.declarations.flatMap((declaration) =>
-      getUsedVars(declaration)
-    );
-
-    const stringifiedRules = stringifyRules([cssRules]);
-
-    return { customProperties, stringifiedRules };
-  });
-
-  const usedVars = cssTexts.flatMap((cssText) => cssText.customProperties);
-  const cssText = cssTexts
-    .map((cssText) => cssText.stringifiedRules)
-    .join("\n");
-
-  const varsValuesPairs = rootRule.filter((declaration) => {
-    return usedVars.includes(declaration.property);
-  });
-
-  const newRule: Rule = {
-    type: "rule",
-    selectors: [":root"],
-    declarations: varsValuesPairs,
-  };
-
-  const rootDeclarations = stringifyRules([newRule]);
-
-  return `${rootDeclarations}\n${cssText}`;
 }

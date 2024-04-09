@@ -19,7 +19,7 @@ router.post("/", async (req, res) => {
 
   const parsedHTML = parseHTMLToObject(html);
   const allClasses = getChildrenClassesFromHtmlElement(parsedHTML);
-  const cssText = await fetchCss(pageHtml, allClasses);
+  const cssText = await fetchCss(pageHtml, allClasses, url);
 
   res.json({ cssText });
 });
